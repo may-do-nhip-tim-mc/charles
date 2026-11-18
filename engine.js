@@ -131,7 +131,7 @@
       ]
     },
     F1: {
-      title: "TẦNG 1 (MẶT ĐẤT) • SẢNH CHÍNH, THƯ VIỆN & KHIÊU VŨ",
+      title: "TẦNG 1 • SẢNH CHÍNH, THƯ VIỆN & SẢNH KHIÊU VŨ",
       corridors: [{ x:195, y:265, w:510, h:45, label:"HÀNH LANG ĐẠI SẢNH TẦNG 1" }],
       rooms: [
         { id:"f1_garden", name:"Mê Cung & Vườn Hoa", sub:"Ngoại Cảnh Trước Cửa Chính", x:325, y:445, w:250, h:85, type:"garden" },
