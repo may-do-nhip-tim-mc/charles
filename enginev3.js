@@ -1,1445 +1,764 @@
 /**
- * CROOKED MANSION ARCHITECTURAL ENGINE v2.5 (Uketsu / IB Blueprint Edition)
- * Tích hợp cho prompt: Biệt Thự Rừng Thẳm (Charles)
+ * CROOKED MAP ENGINE v3.0 — VINTAGE PARCHMENT & INTERACTIVE SVG EDITION
+ * Tích hợp sẵn bản vẽ mặt bằng 5 tầng (B1 - F4), Kéo/Thu phóng (+/-/Reset),
+ * Tự động làm mờ + khóa 🔒 (unlockedRooms) & Ẩn mật đạo (unlockedSecrets).
  */
 
 (function (global) {
   "use strict";
 
-  // 1. BỘ ÁNH XẠ ID THÔNG MINH (Chống lỗi AI tự chế lệch tên ID phòng)
+  // 1. CHUẨN HÓA ID PHÒNG (Chống lệch ID khi AI tự sinh)
   const ALIAS_MAP = {
-    // B1
-    "b1_stairs": "b1_stairs",
-    "b1_corridor": "b1_stairs",
-    "b1_pipe_corridor": "b1_stairs",
-    "b1_cellar": "b1_cellar",
-    "b1_wine_cellar": "b1_cellar",
-    "b1_wine": "b1_cellar",
-    "b1_pantry": "b1_pantry",
-    "b1_food_pantry": "b1_pantry",
-    "b1_storage": "b1_pantry",
-    "b1_boiler": "b1_boiler",
-    "b1_generator": "b1_boiler",
-    "b1_boiler_room": "b1_boiler",
+    "b1_stairs": "b1_stairs", "b1_corridor": "b1_stairs", "b1_pipe_corridor": "b1_stairs",
+    "b1_cellar": "b1_cellar", "b1_wine_cellar": "b1_cellar", "b1_wine": "b1_cellar",
+    "b1_pantry": "b1_pantry", "b1_food_pantry": "b1_pantry", "b1_storage": "b1_pantry",
+    "b1_boiler": "b1_boiler", "b1_generator": "b1_boiler", "b1_boiler_room": "b1_boiler",
 
-    // F1
-    "f1_exterior": "f1_maze",
-    "f1_maze": "f1_maze",
-    "f1_garden": "f1_maze",
-    "f1_front_yard": "f1_maze",
-    "f1_grand_hall": "f1_grand_hall",
-    "f1_hall": "f1_grand_hall",
-    "f1_lobby": "f1_grand_hall",
-    "f1_main_hall": "f1_grand_hall",
-    "f1_living": "f1_living",
-    "f1_living_room": "f1_living",
-    "f1_main_living": "f1_living",
-    "f1_lib_west": "f1_lib_west",
-    "f1_west_library": "f1_lib_west",
-    "f1_library_west": "f1_lib_west",
-    "f1_lib_east": "f1_lib_east",
-    "f1_east_library": "f1_lib_east",
-    "f1_library_east": "f1_lib_east",
-    "f1_library": "f1_lib_east",
-    "f1_secret": "f1_secret",
-    "f1_secret_room": "f1_secret",
-    "f1_secret_library": "f1_secret",
-    "f1_dining": "f1_dining",
-    "f1_dining_room": "f1_dining",
-    "f1_grand_dining": "f1_dining",
+    "f1_exterior": "f1_maze", "f1_maze": "f1_maze", "f1_garden": "f1_maze",
+    "f1_grand_hall": "f1_grand_hall", "f1_hall": "f1_grand_hall", "f1_lobby": "f1_grand_hall",
+    "f1_living": "f1_living", "f1_living_room": "f1_living", "f1_main_living": "f1_living",
+    "f1_lib_west": "f1_lib_west", "f1_west_library": "f1_lib_west", "f1_library_west": "f1_lib_west",
+    "f1_lib_east": "f1_lib_east", "f1_east_library": "f1_lib_east", "f1_library_east": "f1_lib_east", "f1_library": "f1_lib_east",
+    "f1_secret": "f1_secret", "f1_secret_room": "f1_secret",
+    "f1_dining": "f1_dining", "f1_dining_room": "f1_dining",
     "f1_kitchen": "f1_kitchen",
-    "f1_ballroom": "f1_ballroom",
-    "f1_dance_hall": "f1_ballroom",
-    "f1_stage": "f1_stage",
-    "f1_main_stage": "f1_stage",
-    "f1_pool": "f1_pool",
-    "f1_indoor_pool": "f1_pool",
-    "f1_lockers": "f1_pool",
-    "f1_stairs_left": "f1_stairs_left",
-    "f1_left_stairs": "f1_stairs_left",
-    "f1_stairs_right": "f1_stairs_right",
-    "f1_right_stairs": "f1_stairs_right",
+    "f1_ballroom": "f1_ballroom", "f1_dance_hall": "f1_ballroom",
+    "f1_stage": "f1_stage", "f1_main_stage": "f1_stage",
+    "f1_pool": "f1_pool", "f1_indoor_pool": "f1_pool",
+    "f1_stairs_left": "f1_stairs_left", "f1_left_stairs": "f1_stairs_left",
+    "f1_stairs_right": "f1_stairs_right", "f1_right_stairs": "f1_stairs_right",
 
-    // F2
-    "f2_hallway": "f2_hallway",
-    "f2_corridor": "f2_hallway",
-    "f2_long_hallway": "f2_hallway",
-    "f2_butler": "f2_butler",
-    "f2_henry_room": "f2_butler",
-    "f2_butler_room": "f2_butler",
-    "f2_lounge": "f2_lounge",
-    "f2_common_lounge": "f2_lounge",
-    "f2_common_room": "f2_lounge",
-    "f2_guest_1": "f2_guest_1",
-    "f2_room_1": "f2_guest_1",
-    "f2_guest_2": "f2_guest_2",
-    "f2_room_2": "f2_guest_2",
-    "f2_guest_3": "f2_guest_3",
-    "f2_room_3": "f2_guest_3",
-    "f2_guest_4": "f2_guest_4",
-    "f2_room_4": "f2_guest_4",
-    "f2_guest_5": "f2_guest_5",
-    "f2_room_5": "f2_guest_5",
-    "f2_guest_6": "f2_guest_6",
-    "f2_room_6": "f2_guest_6",
-    "f2_guest_7": "f2_guest_7",
-    "f2_room_7": "f2_guest_7",
-    "f2_guest_8": "f2_guest_8",
-    "f2_room_8": "f2_guest_8",
-    "f2_guest_9": "f2_guest_9",
-    "f2_room_9": "f2_guest_9",
-    "f2_guest_10": "f2_guest_10",
-    "f2_room_10": "f2_guest_10",
-    "f2_secret": "f2_secret",
-    "f2_secret_passage": "f2_secret",
-    "f2_stairs_left": "f2_stairs_left",
-    "f2_stairs_right": "f2_stairs_right",
+    "f2_hallway": "f2_hallway", "f2_corridor": "f2_hallway", "f2_long_hallway": "f2_hallway",
+    "f2_butler": "f2_butler", "f2_henry_room": "f2_butler", "f2_butler_room": "f2_butler",
+    "f2_lounge": "f2_lounge", "f2_common_lounge": "f2_lounge", "f2_common_room": "f2_lounge",
+    "f2_guest_1": "f2_guest_1", "f2_room_1": "f2_guest_1",
+    "f2_guest_2": "f2_guest_2", "f2_room_2": "f2_guest_2",
+    "f2_guest_3": "f2_guest_3", "f2_room_3": "f2_guest_3",
+    "f2_guest_4": "f2_guest_4", "f2_room_4": "f2_guest_4",
+    "f2_guest_5": "f2_guest_5", "f2_room_5": "f2_guest_5",
+    "f2_guest_6": "f2_guest_6", "f2_room_6": "f2_guest_6",
+    "f2_guest_7": "f2_guest_7", "f2_room_7": "f2_guest_7",
+    "f2_guest_8": "f2_guest_8", "f2_room_8": "f2_guest_8",
+    "f2_guest_9": "f2_guest_9", "f2_room_9": "f2_guest_9",
+    "f2_guest_10": "f2_guest_10", "f2_room_10": "f2_guest_10",
+    "f2_secret": "f2_secret", "f2_secret_passage": "f2_secret",
+    "f2_stairs_left": "f2_stairs_left", "f2_stairs_right": "f2_stairs_right",
 
-    // F3
-    "f3_master": "f3_master",
-    "f3_master_bedroom": "f3_master",
-    "f3_arthur_room": "f3_master",
-    "f3_kids": "f3_kids",
-    "f3_kids_room": "f3_kids",
-    "f3_children_room": "f3_kids",
-    "f3_secret": "f3_secret",
-    "f3_secret_kids": "f3_secret",
-    "f3_vip": "f3_vip",
-    "f3_vip_lounge": "f3_vip",
-    "f3_office": "f3_office",
-    "f3_arthur_office": "f3_office",
-    "f3_study": "f3_office",
-    "f3_reading": "f3_reading",
-    "f3_reading_room": "f3_reading",
-    "f3_locked_library": "f3_locked_library",
-    "f3_private_library": "f3_locked_library",
-    "f3_gym": "f3_gym",
-    "f3_spa": "f3_gym",
-    "f3_gym_spa": "f3_gym",
-    "f3_stairs_left": "f3_stairs_left",
-    "f3_stairs_right": "f3_stairs_right",
+    "f3_master": "f3_master", "f3_master_bedroom": "f3_master",
+    "f3_kids": "f3_kids", "f3_kids_room": "f3_kids",
+    "f3_secret": "f3_secret", "f3_secret_kids": "f3_secret",
+    "f3_vip": "f3_vip", "f3_vip_lounge": "f3_vip",
+    "f3_office": "f3_office", "f3_arthur_office": "f3_office", "f3_study": "f3_office",
+    "f3_reading": "f3_reading", "f3_reading_room": "f3_reading",
+    "f3_locked_library": "f3_locked_library", "f3_private_library": "f3_locked_library",
+    "f3_gym": "f3_gym", "f3_spa": "f3_gym", "f3_gym_spa": "f3_gym",
+    "f3_stairs_left": "f3_stairs_left", "f3_stairs_right": "f3_stairs_right",
 
-    // F4
-    "f4_waiting_hall": "f4_waiting_hall",
-    "f4_waiting": "f4_waiting_hall",
-    "f4_hall": "f4_waiting_hall",
-    "f4_center_hall": "f4_waiting_hall",
-    "f4_cinema": "f4_cinema",
-    "f4_movie_room": "f4_cinema",
-    "f4_bell_tower": "f4_bell_tower",
-    "f4_tower": "f4_bell_tower",
+    "f4_waiting_hall": "f4_waiting_hall", "f4_waiting": "f4_waiting_hall", "f4_hall": "f4_waiting_hall",
+    "f4_cinema": "f4_cinema", "f4_movie_room": "f4_cinema",
+    "f4_bell_tower": "f4_bell_tower", "f4_tower": "f4_bell_tower",
     "f4_bar": "f4_bar",
-    "f4_games": "f4_games",
-    "f4_game_room": "f4_games",
-    "f4_poker": "f4_games",
+    "f4_games": "f4_games", "f4_game_room": "f4_games", "f4_poker": "f4_games",
     "f4_karaoke": "f4_karaoke",
-    "f4_greenhouse": "f4_greenhouse",
-    "f4_garden": "f4_greenhouse",
-    "f4_rooftop_garden": "f4_greenhouse",
-    "f4_zen_temple": "f4_zen_temple",
-    "f4_temple": "f4_zen_temple",
-    "f4_zen": "f4_zen_temple"
+    "f4_greenhouse": "f4_greenhouse", "f4_garden": "f4_greenhouse",
+    "f4_zen_temple": "f4_zen_temple", "f4_temple": "f4_zen_temple", "f4_zen": "f4_zen_temple"
   };
 
-  function normalizeId(rawId) {
-    if (!rawId || typeof rawId !== "string") return "";
-    const clean = rawId.trim().toLowerCase();
-    return ALIAS_MAP[clean] || clean;
+  function normId(id) {
+    if (!id || typeof id !== "string") return "";
+    const k = id.trim().toLowerCase();
+    return ALIAS_MAP[k] || k;
   }
 
-  // 2. CƠ SỞ DỮ LIỆU KIẾN TRÚC 5 TẦNG (TỌA ĐỘ SVG 760x480)
-  const MANOR_BLUEPRINT = {
+  // 2. SƠ ĐỒ KIẾN TRÚC 5 TẦNG (TỌA ĐỘ 700x460)
+  const FLOORS = {
     B1: {
-      code: "B1",
-      name: "TẦNG HẦM KỸ THUẬT (UTILITY BASEMENT)",
-      subtitle: "Lối vào duy nhất từ Cửa phụ Nhà Bếp Tầng 1 • Trần thấp, đường ống hơi nước rò rỉ",
-      outline: "M 130,60 H 630 V 420 H 130 Z",
-      corridors: [
-        // Đường ống dẫn nhiệt ngầm
-        `<line x1="150" y1="220" x2="610" y2="220" stroke="#334155" stroke-width="6" stroke-dasharray="10,4"/>`,
-        `<line x1="370" y1="80" x2="370" y2="400" stroke="#334155" stroke-width="6" stroke-dasharray="10,4"/>`
-      ],
+      tabLabel: "HẦM\nB1",
+      title: "TẦNG HẦM B1 • KHU KỸ THUẬT & KHO ĐÔNG LẠNH",
+      outline: "M 110,50 H 590 V 410 H 110 Z",
       rooms: [
-        {
-          id: "b1_stairs",
-          name: "Cầu Thang Hầm & Hành Lang Ống",
-          shortName: "HÀNH LANG ĐƯỜNG ỐNG",
-          x: 150, y: 80, w: 210, h: 130,
-          archNote: "Cầu thang bê tông ẩm mốc nối thẳng lên Nhà Bếp (F1). Dọc trần là hệ thống ống dẫn nhiệt.",
-          decor: `
-            <rect x="165" y="95" width="75" height="36" fill="url(#stairs-pat)" stroke="#64748b" stroke-width="1"/>
-            <text x="202" y="145" fill="#64748b" font-size="8" text-anchor="middle">▲ LÊN BẾP F1</text>
-          `
-        },
-        {
-          id: "b1_cellar",
-          name: "Hầm Rượu Vang Cổ",
-          shortName: "HẦM RƯỢU VANG",
-          x: 150, y: 230, w: 210, h: 170,
-          archNote: "Chứa hàng trăm chai vang đỏ đắt tiền của Arthur. Nhiệt độ luôn thấp và tối.",
-          decor: `
-            <rect x="170" y="250" width="22" height="120" fill="none" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,2"/>
-            <rect x="205" y="250" width="22" height="120" fill="none" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,2"/>
-            <circle cx="310" cy="340" r="18" fill="none" stroke="#475569" stroke-width="1.5"/>
-          `
-        },
-        {
-          id: "b1_pantry",
-          name: "Kho Thực Phẩm Lạnh",
-          shortName: "KHO THỰC PHẨM LẠNH",
-          x: 380, y: 80, w: 230, h: 130,
-          archNote: "Kho dự trữ lương thực cho 24 người trong 5 ngày bão tuyết.",
-          decor: `
-            <rect x="400" y="95" width="190" height="18" fill="none" stroke="#475569" stroke-width="1"/>
-            <rect x="400" y="175" width="190" height="18" fill="none" stroke="#475569" stroke-width="1"/>
-          `
-        },
-        {
-          id: "b1_boiler",
-          name: "Phòng Lò Sưởi & Máy Phát Điện",
-          shortName: "LÒ SƯỞI & MÁY PHÁT",
-          x: 380, y: 230, w: 230, h: 170,
-          lockedByDefault: true,
-          archNote: "Trái tim nhiệt lượng của biệt thự do thợ máy Logan giữ chìa. Chứa lò đốt dầu trung tâm và cầu dao tổng.",
-          decor: `
-            <circle cx="445" cy="315" r="32" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="6,3"/>
-            <circle cx="445" cy="315" r="14" fill="none" stroke="#64748b" stroke-width="1"/>
-            <rect x="510" y="275" width="75" height="80" fill="none" stroke="#64748b" stroke-width="2"/>
-          `
-        }
+        { id: "b1_stairs", name: "Cầu Thang Hầm & Hành Lang Ống", short: "THANG HẦM & ĐƯỜNG ỐNG", x: 130, y: 70, w: 210, h: 145, desc: "Cầu thang bê tông ẩm mốc nối lên Nhà Bếp Tầng 1. Dọc trần là hệ thống ống hơi nước." },
+        { id: "b1_pantry", name: "Kho Thực Phẩm Lạnh", short: "KHO THỰC PHẨM", x: 355, y: 70, w: 215, h: 145, desc: "Kho trữ đông thực phẩm và nhu yếu phẩm cho 24 người." },
+        { id: "b1_cellar", name: "Hầm Rượu Vang Cổ", short: "HẦM RƯỢU VANG", x: 130, y: 230, w: 210, h: 160, desc: "Những kệ gỗ sồi chứa hàng trăm chai rượu vang đắt tiền của Arthur." },
+        { id: "b1_boiler", name: "Phòng Lò Sưởi & Máy Phát Điện", short: "LÒ SƯỞI & MÁY PHÁT", x: 355, y: 230, w: 215, h: 160, lockedByDefault: true, desc: "Khu kỹ thuật do thợ máy Logan giữ chìa khóa. Chứa lò đốt sưởi trung tâm và máy phát điện." }
       ]
     },
-
     F1: {
-      code: "F1",
-      name: "TẦNG 1 — MẶT ĐẤT (GROUND FLOOR)",
-      subtitle: "Khu vực sinh hoạt chung, Đại Sảnh, Phòng Khiêu Vũ & 2 Thư Viện đối xứng",
-      outline: "M 35,30 H 725 V 450 H 35 Z",
-      corridors: [
-        // Đường nối Sảnh và Cánh Trái/Phải
-        `<line x1="215" y1="220" x2="255" y2="220" stroke="#475569" stroke-width="2" stroke-dasharray="3,3"/>`,
-        `<line x1="505" y1="220" x2="545" y2="220" stroke="#475569" stroke-width="2" stroke-dasharray="3,3"/>`
-      ],
+      tabLabel: "TẦNG\n1",
+      title: "TẦNG 1 • ĐẠI SẢNH, KHIÊU VŨ & NGOẠI CẢNH",
+      outline: "M 25,25 H 675 V 435 H 25 Z",
       rooms: [
-        // Cánh Trái
-        {
-          id: "f1_stairs_left",
-          name: "Cầu Thang Cánh Trái (T1)",
-          shortName: "THANG TRÁI",
-          x: 50, y: 45, w: 165, h: 65,
-          archNote: "Cầu thang gỗ sồi dẫn lên khu phòng Quản gia Henry (F2) và nhánh trái F3.",
-          decor: `<rect x="65" y="55" width="135" height="24" fill="url(#stairs-pat)" stroke="#64748b" stroke-width="1"/>`
-        },
-        {
-          id: "f1_kitchen",
-          name: "Nhà Bếp & Lối Xuống Hầm B1",
-          shortName: "NHÀ BẾP (MARTHA)",
-          x: 50, y: 120, w: 165, h: 135,
-          archNote: "Do Bếp trưởng Martha kiểm soát. Có giá treo dao làm bếp và cửa dịch vụ dẫn xuống Tầng Hầm B1.",
-          decor: `
-            <rect x="62" y="132" width="140" height="20" fill="none" stroke="#475569" stroke-width="1.2"/>
-            <rect x="62" y="215" width="55" height="26" fill="url(#stairs-pat)" stroke="#64748b" stroke-width="1"/>
-            <text x="90" y="210" fill="#94a3b8" font-size="7.5" text-anchor="middle">▼ XUỐNG B1</text>
-          `
-        },
-        {
-          id: "f1_dining",
-          name: "Phòng Ăn Lớn (Grand Dining)",
-          shortName: "PHÒNG ĂN LỚN",
-          x: 50, y: 265, w: 165, h: 170,
-          archNote: "Bàn tiệc gỗ sồi dài 24 ghế dưới đèn chùm pha lê.",
-          decor: `
-            <rect x="95" y="295" width="75" height="110" rx="8" fill="none" stroke="#64748b" stroke-width="1.8"/>
-            <line x1="85" y1="310" x2="85" y2="390" stroke="#475569" stroke-width="4" stroke-dasharray="8,8"/>
-            <line x1="180" y1="310" x2="180" y2="390" stroke="#475569" stroke-width="4" stroke-dasharray="8,8"/>
-          `
-        },
+        { id: "f1_stairs_left", name: "Cầu Thang Cánh Trái (T1)", short: "THANG TRÁI", x: 40, y: 40, w: 145, h: 65, desc: "Cầu thang gỗ dẫn lên đầu trái Tầng 2 (Phòng Quản gia Henry)." },
+        { id: "f1_kitchen", name: "Nhà Bếp (Chef Martha)", short: "NHÀ BẾP", x: 40, y: 115, w: 145, h: 130, desc: "Khu bếp lớn có giá dao sắc nhọn và cửa phụ dẫn xuống Tầng Hầm B1." },
+        { id: "f1_dining", name: "Phòng Ăn Lớn", short: "PHÒNG ĂN LỚN", x: 40, y: 255, w: 145, h: 165, desc: "Bàn tiệc dài 24 ghế dưới ánh đèn chùm." },
 
-        // Trục Trung Tâm
-        {
-          id: "f1_living",
-          name: "Phòng Khách Chính (Lò Sưởi Đá)",
-          shortName: "PHÒNG KHÁCH CHÍNH",
-          x: 255, y: 45, w: 250, h: 115,
-          archNote: "Trung tâm sưởi ấm của Tầng 1 với lò sưởi đá cẩm thạch lớn.",
-          decor: `
-            <rect x="340" y="45" width="80" height="14" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/>
-            <text x="380" y="55" fill="#fca5a5" font-size="7.5" text-anchor="middle">🔥 LÒ SƯỞI</text>
-            <rect x="315" y="85" width="130" height="45" rx="4" fill="none" stroke="#475569" stroke-width="1.2"/>
-          `
-        },
-        {
-          id: "f1_lib_west",
-          name: "Thư Viện Tây (Đối Xứng)",
-          shortName: "THƯ VIỆN TÂY",
-          x: 230, y: 170, w: 95, h: 135,
-          archNote: "Thiết kế đối xứng hoàn hảo với Thư Viện Đông qua Sảnh Đón Khách.",
-          decor: `
-            <line x1="240" y1="182" x2="240" y2="290" stroke="#475569" stroke-width="6" stroke-dasharray="12,3"/>
-            <line x1="315" y1="182" x2="315" y2="290" stroke="#475569" stroke-width="6" stroke-dasharray="12,3"/>
-          `
-        },
-        {
-          id: "f1_grand_hall",
-          name: "Sảnh Đón Khách (Grand Hall)",
-          shortName: "SẢNH ĐÓN KHÁCH",
-          x: 330, y: 170, w: 100, h: 155,
-          savePoint: 1,
-          archNote: "Đặt đồng hồ quả lắc lớn. Phía sau chân cầu thang chính là 🌹 Bình Hoa Hồng Đỏ (Save Point #1).",
-          decor: `
-            <rect x="352" y="178" width="56" height="32" fill="url(#stairs-pat)" stroke="#64748b" stroke-width="1"/>
-            <circle cx="380" cy="285" r="16" fill="none" stroke="#475569" stroke-width="1.2"/>
-          `
-        },
-        {
-          id: "f1_lib_east",
-          name: "Thư Viện Đông (Đối Xứng)",
-          shortName: "THƯ VIỆN ĐÔNG",
-          x: 435, y: 170, w: 95, h: 135,
-          archNote: "Chứa hàng ngàn đầu sách cổ. Kệ sách gỗ sồi phía nam có kết cấu bất thường.",
-          decor: `
-            <line x1="445" y1="182" x2="445" y2="290" stroke="#475569" stroke-width="6" stroke-dasharray="12,3"/>
-            <line x1="520" y1="182" x2="520" y2="290" stroke="#475569" stroke-width="6" stroke-dasharray="12,3"/>
-          `
-        },
-        {
-          id: "f1_secret",
-          name: "Mật Thất Thư Viện Đông",
-          shortName: "🕵️ MẬT THẤT T1",
-          x: 435, y: 310, w: 95, h: 55,
-          isSecret: true,
-          archNote: "Khoang mật thất ẩn sau kệ sách xoay 90 độ của Thư Viện Đông (do kiến trúc sư Richard thiết kế)."
-        },
-        {
-          id: "f1_maze",
-          name: "Mê Cung Tuyết & Vườn Hoa Quý",
-          shortName: "MÊ CUNG TUYẾT (NGOẠI CẢNH)",
-          x: 230, y: 372, w: 300, h: 63,
-          archNote: "Nằm trước Cửa Chính, hiện đã bị bão tuyết trắng xóa vùi lấp hoàn toàn, cô lập biệt thự.",
-          decor: `
-            <path d="M 250,385 H 320 V 420 M 440,385 H 510 V 420" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.45"/>
-            <text x="380" y="384" fill="#93c5fd" font-size="7.5" text-anchor="middle">❄ CỬA CHÍNH BỊ TUYẾT PHONG TỎA ❄</text>
-          `
-        },
+        { id: "f1_living", name: "Phòng Khách Chính (Lò Sưởi)", short: "PHÒNG KHÁCH CHÍNH", x: 200, y: 40, w: 300, h: 110, desc: "Phòng khách trung tâm có lò sưởi đá cẩm thạch lớn nhất biệt thự." },
+        { id: "f1_lib_west", name: "Thư Viện Tây", short: "THƯ VIỆN TÂY", x: 200, y: 160, w: 92, h: 135, desc: "Thư viện đối xứng bên trái Đại Sảnh." },
+        { id: "f1_grand_hall", name: "Sảnh Đón Khách (Grand Hall)", short: "SẢNH ĐÓN KHÁCH", x: 300, y: 160, w: 100, h: 155, savePoint: 1, desc: "Đặt đồng hồ quả lắc lớn và bình hoa hồng đỏ thẫm [🌹 SAVE POINT #1] sau cầu thang chính." },
+        { id: "f1_lib_east", name: "Thư Viện Đông", short: "THƯ VIỆN ĐÔNG", x: 408, y: 160, w: 92, h: 135, desc: "Thư viện đối xứng bên phải Đại Sảnh, chứa nhiều kệ sách gỗ sồi cao sát trần." },
+        { id: "f1_secret", name: "Mật Thất Thư Viện Đông", short: "🕵️ MẬT THẤT T1", x: 408, y: 302, w: 92, h: 52, isSecret: true, desc: "Căn phòng bí mật ẩn sau kệ sách xoay 90 độ của Thư Viện Đông." },
+        { id: "f1_maze", name: "Mê Cung Tuyết & Vườn Hoa", short: "MÊ CUNG TUYẾT (NGOÀI TRỜI)", x: 200, y: 362, w: 300, h: 58, desc: "Ngoại cảnh phía trước cửa chính, hiện đã bị bão tuyết vùi lấp hoàn toàn." },
 
-        // Cánh Phải
-        {
-          id: "f1_stairs_right",
-          name: "Cầu Thang Cánh Phải (T1)",
-          shortName: "THANG PHẢI",
-          x: 545, y: 45, w: 165, h: 65,
-          archNote: "Dẫn lên Sảnh Sinh Hoạt Chung (F2) và nhánh phải F3.",
-          decor: `<rect x="560" y="55" width="135" height="24" fill="url(#stairs-pat)" stroke="#64748b" stroke-width="1"/>`
-        },
-        {
-          id: "f1_pool",
-          name: "Hồ Bơi & Phòng Thay Đồ",
-          shortName: "HỒ BƠI TRONG NHÀ",
-          x: 545, y: 120, w: 165, h: 115,
-          archNote: "Nằm phía sau Sảnh Khiêu Vũ, mặt nước lạnh buốt phản chiếu ánh đèn mờ.",
-          decor: `
-            <rect x="565" y="140" width="125" height="75" rx="4" fill="#0c4a6e" fill-opacity="0.35" stroke="#0284c7" stroke-width="1.5"/>
-          `
-        },
-        {
-          id: "f1_ballroom",
-          name: "Sảnh Khiêu Vũ (Giant Ballroom)",
-          shortName: "SẢNH KHIÊU VŨ",
-          x: 545, y: 245, w: 165, h: 120,
-          archNote: "Sảnh rộng lát gỗ bóng loáng nằm ở Cánh Phải, thông trực tiếp với Sân Khấu Lớn.",
-          decor: `
-            <circle cx="627" cy="305" r="28" fill="none" stroke="#475569" stroke-width="1" stroke-dasharray="4,4"/>
-          `
-        },
-        {
-          id: "f1_stage",
-          name: "Sân Khấu Lớn (Main Stage)",
-          shortName: "SÂN KHẤU LỚN",
-          x: 545, y: 365, w: 165, h: 70,
-          archNote: "Bục sân khấu nhung đỏ nằm cuối Sảnh Khiêu Vũ.",
-          decor: `
-            <path d="M 555,375 Q 627,395 700,375" fill="none" stroke="#991b1b" stroke-width="2"/>
-          `
-        }
+        { id: "f1_stairs_right", name: "Cầu Thang Cánh Phải (T1)", short: "THANG PHẢI", x: 515, y: 40, w: 145, h: 65, desc: "Dẫn lên Sảnh Sinh Hoạt Chung ở đầu phải Tầng 2." },
+        { id: "f1_pool", name: "Hồ Bơi & Phòng Thay Đồ", short: "HỒ BƠI", x: 515, y: 115, w: 145, h: 110, desc: "Hồ bơi nước lạnh trong nhà nằm phía sau Sảnh Khiêu Vũ." },
+        { id: "f1_ballroom", name: "Sảnh Khiêu Vũ (Ballroom)", short: "SẢNH KHIÊU VŨ", x: 515, y: 235, w: 145, h: 115, desc: "Sảnh khiêu vũ rộng lớn thông liền với Sân Khấu Lớn." },
+        { id: "f1_stage", name: "Sân Khấu Lớn", short: "SÂN KHẤU LỚN", x: 515, y: 355, w: 145, h: 65, desc: "Bục sân khấu trải thảm nhung đỏ tại Sảnh Khiêu Vũ." }
       ]
     },
-
     F2: {
-      code: "F2",
-      name: "TẦNG 2 — KHU CĂN HỘ KHÁCH (GUEST QUARTERS)",
-      subtitle: "Hành lang hẹp dài nối liền 10 Căn Hộ Khách (#1–#10), Phòng Quản Gia & Sảnh Sinh Hoạt Chung",
-      outline: "M 35,40 H 725 V 440 H 35 Z",
-      corridors: [],
+      tabLabel: "TẦNG\n2",
+      title: "TẦNG 2 • HÀNH LANG DÀI & 10 CĂN HỘ KHÁCH",
+      outline: "M 25,35 H 675 V 425 H 25 Z",
       rooms: [
-        // Cánh Trái
-        {
-          id: "f2_stairs_left",
-          name: "Cầu Thang Cánh Trái (T2)",
-          shortName: "THANG TRÁI",
-          x: 50, y: 60, w: 115, h: 90,
-          archNote: "Nối xuống Bếp/Phòng Ăn (F1) và dẫn lên cửa sắt khóa của Tầng 3.",
-          decor: `<rect x="62" y="75" width="90" height="26" fill="url(#stairs-pat)" stroke="#64748b" stroke-width="1"/>`
-        },
-        {
-          id: "f2_butler",
-          name: "Phòng Quản Gia Henry",
-          shortName: "PHÒNG QUẢN GIA",
-          x: 50, y: 160, w: 115, h: 260,
-          archNote: "Nằm ngay đầu trái hành lang để quản gia trưởng Henry giám sát toàn bộ khách khứa.",
-          decor: `<rect x="65" y="360" width="85" height="40" fill="none" stroke="#475569" stroke-width="1.2"/>`
-        },
+        { id: "f2_stairs_left", name: "Cầu Thang Trái (T2)", short: "THANG TRÁI", x: 40, y: 50, w: 105, h: 85, desc: "Nối xuống Nhà Bếp (F1) và dẫn lên cửa khóa Tầng 3." },
+        { id: "f2_butler", name: "Phòng Quản Gia Henry", short: "P. QUẢN GIA", x: 40, y: 145, w: 105, h: 265, desc: "Phòng riêng của Quản gia trưởng Henry ngay đầu hành lang." },
 
-        // Dãy 5 Căn hộ phía Bắc (#1 -> #5)
-        {
-          id: "f2_secret",
-          name: "Khoang Rỗng Sau Tủ Áo Phòng #1",
-          shortName: "🕵️ KHOANG RỖNG P.1",
-          x: 175, y: 45, w: 80, h: 42,
-          isSecret: true,
-          archNote: "Khoang rỗng bí mật nằm ngay sau vách tủ quần áo của Căn hộ Khách số 1."
-        },
-        {
-          id: "f2_guest_1",
-          name: "Căn Hộ Khách Số 1",
-          shortName: "PHÒNG #1",
-          x: 175, y: 92, w: 80, h: 108,
-          archNote: "Căn hộ khách đầu tiên bên trái. Có phòng tắm khép kín và chốt gài bên trong."
-        },
-        {
-          id: "f2_guest_2",
-          name: "Căn Hộ Khách Số 2",
-          shortName: "PHÒNG #2",
-          x: 260, y: 92, w: 80, h: 108,
-          archNote: "Căn hộ khách #2. Cửa gỗ sồi dày có chốt trong."
-        },
-        {
-          id: "f2_guest_3",
-          name: "Căn Hộ Khách Số 3",
-          shortName: "PHÒNG #3",
-          x: 345, y: 92, w: 80, h: 108,
-          archNote: "Căn hộ khách #3. Có phòng vệ sinh khép kín."
-        },
-        {
-          id: "f2_guest_4",
-          name: "Căn Hộ Khách Số 4",
-          shortName: "PHÒNG #4",
-          x: 430, y: 92, w: 80, h: 108,
-          archNote: "Căn hộ khách #4. Có phòng vệ sinh khép kín."
-        },
-        {
-          id: "f2_guest_5",
-          name: "Căn Hộ Khách Số 5",
-          shortName: "PHÒNG #5",
-          x: 515, y: 92, w: 80, h: 108,
-          archNote: "Căn hộ khách #5 nằm sát Sảnh Sinh Hoạt Chung."
-        },
+        { id: "f2_secret", name: "Khoang Rỗng Phòng Số 1", short: "🕵️ MẬT ĐẠO P.1", x: 155, y: 42, w: 74, h: 42, isSecret: true, desc: "Khoang rỗng bí mật nằm sau vách tủ quần áo của Phòng Khách #1." },
+        { id: "f2_guest_1", name: "Căn Hộ Khách #1", short: "PHÒNG #1", x: 155, y: 90, w: 74, h: 105, desc: "Căn hộ khách số 1 có phòng tắm khép kín và chốt trong." },
+        { id: "f2_guest_2", name: "Căn Hộ Khách #2", short: "PHÒNG #2", x: 235, y: 90, w: 74, h: 105, desc: "Căn hộ khách số 2." },
+        { id: "f2_guest_3", name: "Căn Hộ Khách #3", short: "PHÒNG #3", x: 315, y: 90, w: 74, h: 105, desc: "Căn hộ khách số 3." },
+        { id: "f2_guest_4", name: "Căn Hộ Khách #4", short: "PHÒNG #4", x: 395, y: 90, w: 74, h: 105, desc: "Căn hộ khách số 4." },
+        { id: "f2_guest_5", name: "Căn Hộ Khách #5", short: "PHÒNG #5", x: 475, y: 90, w: 74, h: 105, desc: "Căn hộ khách số 5." },
 
-        // Trục Hành Lang Dài
-        {
-          id: "f2_hallway",
-          name: "Trục Hành Lang Dài (The Long Hallway)",
-          shortName: "TRỤC HÀNH LANG DÀI (10 PHÒNG KHÁCH)",
-          x: 175, y: 208, w: 420, h: 74,
-          archNote: "Hành lang hẹp, thiếu sáng và ngột ngạt nối liền hai đầu cầu thang. Julian đã lén gắn camera siêu nhỏ ở góc khuất.",
-          decor: `
-            <line x1="190" y1="245" x2="580" y2="245" stroke="#475569" stroke-width="1" stroke-dasharray="8,6"/>
-          `
-        },
+        { id: "f2_hallway", name: "Trục Hành Lang Dài (Tầng 2)", short: "TRỤC HÀNH LANG DÀI", x: 155, y: 203, w: 394, h: 74, desc: "Hành lang hẹp, tối và ngột ngạt chia đôi hai dãy phòng khách." },
 
-        // Dãy 5 Căn hộ phía Nam (#6 -> #10)
-        {
-          id: "f2_guest_6",
-          name: "Căn Hộ Khách Số 6",
-          shortName: "PHÒNG #6",
-          x: 175, y: 290, w: 80, h: 130,
-          archNote: "Căn hộ khách #6 đối diện Phòng #1."
-        },
-        {
-          id: "f2_guest_7",
-          name: "Căn Hộ Khách Số 7",
-          shortName: "PHÒNG #7",
-          x: 260, y: 290, w: 80, h: 130,
-          archNote: "Căn hộ khách #7 đối diện Phòng #2."
-        },
-        {
-          id: "f2_guest_8",
-          name: "Căn Hộ Khách Số 8",
-          shortName: "PHÒNG #8",
-          x: 345, y: 290, w: 80, h: 130,
-          archNote: "Căn hộ khách #8 ở giữa dãy hành lang phía nam."
-        },
-        {
-          id: "f2_guest_9",
-          name: "Căn Hộ Khách Số 9",
-          shortName: "PHÒNG #9",
-          x: 430, y: 290, w: 80, h: 130,
-          archNote: "Căn hộ khách #9."
-        },
-        {
-          id: "f2_guest_10",
-          name: "Căn Hộ Khách Số 10",
-          shortName: "PHÒNG #10",
-          x: 515, y: 290, w: 80, h: 130,
-          archNote: "Căn hộ khách #10 ở cuối dãy phía nam."
-        },
+        { id: "f2_guest_6", name: "Căn Hộ Khách #6", short: "PHÒNG #6", x: 155, y: 285, w: 74, h: 125, desc: "Căn hộ khách số 6." },
+        { id: "f2_guest_7", name: "Căn Hộ Khách #7", short: "PHÒNG #7", x: 235, y: 285, w: 74, h: 125, desc: "Căn hộ khách số 7." },
+        { id: "f2_guest_8", name: "Căn Hộ Khách #8", short: "PHÒNG #8", x: 315, y: 285, w: 74, h: 125, desc: "Căn hộ khách số 8." },
+        { id: "f2_guest_9", name: "Căn Hộ Khách #9", short: "PHÒNG #9", x: 395, y: 285, w: 74, h: 125, desc: "Căn hộ khách số 9." },
+        { id: "f2_guest_10", name: "Căn Hộ Khách #10", short: "PHÒNG #10", x: 475, y: 285, w: 74, h: 125, desc: "Căn hộ khách số 10." },
 
-        // Đầu Phải
-        {
-          id: "f2_stairs_right",
-          name: "Cầu Thang Cánh Phải (T2)",
-          shortName: "THANG PHẢI",
-          x: 605, y: 60, w: 105, h: 90,
-          archNote: "Nối xuống Cánh Phải (F1) và dẫn lên nhánh phải Tầng 3.",
-          decor: `<rect x="615" y="75" width="85" height="26" fill="url(#stairs-pat)" stroke="#64748b" stroke-width="1"/>`
-        },
-        {
-          id: "f2_lounge",
-          name: "Sảnh Sinh Hoạt Chung (Common Lounge)",
-          shortName: "SẢNH CHUNG F2",
-          x: 605, y: 160, w: 105, h: 260,
-          savePoint: 2,
-          archNote: "Nằm ở đầu phải hành lang. Trên bàn phụ có đặt 🌹 Bình Hoa Hồng Đỏ (Save Point #2)."
-        }
+        { id: "f2_stairs_right", name: "Cầu Thang Phải (T2)", short: "THANG PHẢI", x: 558, y: 50, w: 102, h: 85, desc: "Nối xuống Cánh Phải (F1) và dẫn lên Tầng 3." },
+        { id: "f2_lounge", name: "Sảnh Sinh Hoạt Chung", short: "SẢNH CHUNG", x: 558, y: 145, w: 102, h: 265, savePoint: 2, desc: "Sảnh nghỉ đầu phải hành lang. Có đặt bình hoa hồng đỏ [🌹 SAVE POINT #2]." }
       ]
     },
-
     F3: {
-      code: "F3",
-      name: "TẦNG 3 — KHU GIA CHỦ HẠN CHẾ (HOST QUARTERS)",
-      subtitle: "Khu vực cấm của vợ chồng Arthur & Diana • Toàn bộ cửa đều bị khóa chặt từ đầu",
-      outline: "M 35,40 H 725 V 440 H 35 Z",
-      corridors: [
-        `<rect x="365" y="60" width="30" height="360" fill="#090d16" stroke="#334155" stroke-width="1.5"/>`
-      ],
+      tabLabel: "TẦNG\n3",
+      title: "TẦNG 3 • KHU GIA CHỦ HẠN CHẾ (KHÓA NGHIÊM NGẶT)",
+      outline: "M 25,35 H 675 V 425 H 25 Z",
       rooms: [
-        // Nhánh Trái
-        {
-          id: "f3_stairs_left",
-          name: "Cầu Thang Trái (T3)",
-          shortName: "THANG TRÁI",
-          x: 50, y: 60, w: 110, h: 85,
-          lockedByDefault: true,
-          archNote: "Cửa chắn cầu thang lên Nhánh Trái Tầng 3 bị khóa."
-        },
-        {
-          id: "f3_master",
-          name: "2 Phòng Ngủ Master (Arthur & Diana)",
-          shortName: "2 PHÒNG MASTER",
-          x: 170, y: 60, w: 185, h: 170,
-          lockedByDefault: true,
-          archNote: "Phòng ngủ xa hoa của vợ chồng chủ nhà Arthur và Diana.",
-          decor: `
-            <rect x="190" y="80" width="65" height="80" fill="none" stroke="#475569" stroke-width="1.2"/>
-            <rect x="275" y="80" width="65" height="80" fill="none" stroke="#475569" stroke-width="1.2"/>
-          `
-        },
-        {
-          id: "f3_vip",
-          name: "Phòng Khách VIP (VIP Lounge)",
-          shortName: "PHÒNG KHÁCH VIP",
-          x: 50, y: 155, w: 110, h: 265,
-          lockedByDefault: true,
-          archNote: "Phòng tiếp khách mật của Arthur ở Nhánh Trái."
-        },
-        {
-          id: "f3_kids",
-          name: "Phòng Ngủ Trẻ Em (Kids Room)",
-          shortName: "PHÒNG TRẺ EM",
-          x: 170, y: 240, w: 185, h: 115,
-          lockedByDefault: true,
-          archNote: "Phòng trẻ em bỏ không phủ đầy bụi. Có một tủ đồ chơi cũ kỹ kê sát vách tường nam."
-        },
-        {
-          id: "f3_secret",
-          name: "Lối Ngầm Phòng Trẻ Em",
-          shortName: "🕵️ LỐI NGẦM PHÒNG TRẺ EM",
-          x: 170, y: 362, w: 185, h: 58,
-          isSecret: true,
-          archNote: "Mật đạo thứ 3 nằm ẩn phía sau chiếc tủ đồ chơi bám bụi trong Phòng Trẻ Em."
-        },
+        { id: "f3_stairs_left", name: "Cầu Thang Trái (T3)", short: "THANG TRÁI", x: 40, y: 50, w: 105, h: 85, lockedByDefault: true, desc: "Cửa ngăn cầu thang lên Nhánh Trái Tầng 3." },
+        { id: "f3_vip", name: "Phòng Khách VIP", short: "KHÁCH VIP", x: 40, y: 145, w: 105, h: 265, lockedByDefault: true, desc: "Phòng tiếp khách mật của Arthur." },
+        { id: "f3_master", name: "2 Phòng Ngủ Master (Arthur & Diana)", short: "2 PHÒNG MASTER", x: 155, y: 50, w: 180, h: 170, lockedByDefault: true, desc: "Khu phòng ngủ chính của vợ chồng chủ biệt thự." },
+        { id: "f3_kids", name: "Phòng Ngủ Trẻ Em", short: "PHÒNG TRẺ EM", x: 155, y: 230, w: 180, h: 115, lockedByDefault: true, desc: "Phòng trẻ em bỏ trống bám đầy bụi, có tủ đồ chơi lớn kê sát tường." },
+        { id: "f3_secret", name: "Lối Ngầm Phòng Trẻ Em", short: "🕵️ LỐI NGẦM T3", x: 155, y: 352, w: 180, h: 58, isSecret: true, desc: "Lối mật đạo ẩn sau chiếc tủ đồ chơi trong Phòng Trẻ Em." },
 
-        // Nhánh Phải
-        {
-          id: "f3_office",
-          name: "Phòng Làm Việc của Arthur (Két Sắt)",
-          shortName: "PHÒNG LÀM VIỆC ARTHUR",
-          x: 405, y: 60, w: 185, h: 170,
-          lockedByDefault: true,
-          archNote: "Phòng làm việc riêng của Arthur, bên trong có két sắt âm tường chứa tài liệu tống tiền.",
-          decor: `<rect x="460" y="105" width="75" height="40" fill="none" stroke="#475569" stroke-width="1.5"/>`
-        },
-        {
-          id: "f3_stairs_right",
-          name: "Cầu Thang Phải (T3)",
-          shortName: "THANG PHẢI",
-          x: 600, y: 60, w: 110, h: 85,
-          lockedByDefault: true,
-          archNote: "Cầu thang dẫn từ Tầng 2 lên Nhánh Phải Tầng 3 và thông lên Tầng 4."
-        },
-        {
-          id: "f3_reading",
-          name: "Phòng Đọc Sách (Reading Room)",
-          shortName: "PHÒNG ĐỌC SÁCH",
-          x: 405, y: 240, w: 185, h: 180,
-          savePoint: 3,
-          lockedByDefault: true,
-          archNote: "Cạnh khung cửa sổ vòm có đặt 🌹 Bình Hoa Hồng Đỏ (Save Point #3)."
-        },
-        {
-          id: "f3_locked_library",
-          name: "Thư Viện Khép Kín (Private Library)",
-          shortName: "THƯ VIỆN KHÉP KÍN",
-          x: 600, y: 155, w: 110, h: 130,
-          lockedByDefault: true,
-          archNote: "Thư viện tư nhân bị khóa hai lớp của gia chủ."
-        },
-        {
-          id: "f3_gym",
-          name: "Phòng Gym & Spa",
-          shortName: "PHÒNG GYM & SPA",
-          x: 600, y: 295, w: 110, h: 125,
-          lockedByDefault: true,
-          archNote: "Khu tập thể hình và xông hơi riêng trên Tầng 3."
-        }
+        { id: "f3_office", name: "Phòng Làm Việc của Arthur", short: "P. LÀM VIỆC ARTHUR", x: 365, y: 50, w: 180, h: 170, lockedByDefault: true, desc: "Phòng làm việc kiên cố có két sắt âm tường." },
+        { id: "f3_reading", name: "Phòng Đọc Sách", short: "PHÒNG ĐỌC SÁCH", x: 365, y: 230, w: 180, h: 180, savePoint: 3, lockedByDefault: true, desc: "Cạnh cửa sổ vòm có đặt bình hoa hồng đỏ [🌹 SAVE POINT #3]." },
+        { id: "f3_stairs_right", name: "Cầu Thang Phải (T3)", short: "THANG PHẢI", x: 555, y: 50, w: 105, h: 85, lockedByDefault: true, desc: "Cầu thang dẫn lên Tầng 4." },
+        { id: "f3_locked_library", name: "Thư Viện Khép Kín", short: "THƯ VIỆN KHÓA", x: 555, y: 145, w: 105, h: 130, lockedByDefault: true, desc: "Thư viện mật khóa hai lớp của gia chủ." },
+        { id: "f3_gym", name: "Phòng Gym & Spa", short: "GYM & SPA", x: 555, y: 285, w: 105, h: 125, lockedByDefault: true, desc: "Khu tập thể hình và xông hơi riêng." }
       ]
     },
-
     F4: {
-      code: "F4",
-      name: "TẦNG 4 — GIẢI TRÍ & TÂM LINH (ROOFTOP & SPIRITUAL)",
-      subtitle: "Tầng áp mái & sân thượng • Tháp Chuông, Vườn Phong Lan Độc & Thiền Viện Bí Mật",
-      outline: "M 35,40 H 725 V 440 H 35 Z",
-      corridors: [],
+      tabLabel: "TẦNG\n4",
+      title: "TẦNG 4 • KHU GIẢI TRÍ, VƯỜN THƯỢNG UYỂN & THIỀN VIỆN",
+      outline: "M 25,35 H 675 V 425 H 25 Z",
       rooms: [
-        // Khu Trái
-        {
-          id: "f4_bell_tower",
-          name: "Tháp Chuông (Bell Tower)",
-          shortName: "THÁP CHUÔNG",
-          x: 50, y: 60, w: 155, h: 170,
-          archNote: "Điểm cao nhất của biệt thự nhìn thẳng xuống vực núi tuyết sâu thẳm.",
-          decor: `
-            <circle cx="127" cy="145" r="34" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2"/>
-            <circle cx="127" cy="145" r="8" fill="#64748b"/>
-          `
-        },
-        {
-          id: "f4_cinema",
-          name: "Phòng Chiếu Phim Cách Âm",
-          shortName: "PHÒNG CHIẾU PHIM",
-          x: 50, y: 245, w: 155, h: 175,
-          archNote: "Bọc mút tiêu âm dày đặc; tiếng hét bên trong hoàn toàn không thể lọt ra ngoài."
-        },
+        { id: "f4_bell_tower", name: "Tháp Chuông", short: "THÁP CHUÔNG", x: 40, y: 50, w: 145, h: 170, desc: "Tháp chuông cao nhìn thẳng xuống vực núi tuyết." },
+        { id: "f4_cinema", name: "Phòng Chiếu Phim Cách Âm", short: "PHÒNG CHIẾU PHIM", x: 40, y: 230, w: 145, h: 180, desc: "Phòng chiếu phim bọc mút cách âm tuyệt đối." },
 
-        // Khu Giữa
-        {
-          id: "f4_bar",
-          name: "Quán Bar Tầng Thượng",
-          shortName: "QUÁN BAR",
-          x: 220, y: 60, w: 155, h: 110,
-          archNote: "Quầy rượu sang trọng nằm phía bắc Sảnh Chờ."
-        },
-        {
-          id: "f4_karaoke",
-          name: "Phòng Karaoke",
-          shortName: "PHÒNG KARAOKE",
-          x: 385, y: 60, w: 155, h: 110,
-          archNote: "Phòng hát giải trí cách âm nằm cạnh Quán Bar."
-        },
-        {
-          id: "f4_waiting_hall",
-          name: "Sảnh Chờ Hẹp Trung Tâm",
-          shortName: "SẢNH CHỜ TRUNG TÂM",
-          x: 220, y: 182, w: 320, h: 105,
-          savePoint: 4,
-          archNote: "Nằm kẹp giữa Quán Bar và 2 Phòng Game. Chính giữa sảnh đặt 🌹 Bình Hoa Hồng Đỏ (Save Point #4)."
-        },
-        {
-          id: "f4_games",
-          name: "2 Phòng Chơi Game (Billiards & Poker)",
-          shortName: "2 PHÒNG GAME (BI-A / POKER)",
-          x: 220, y: 300, w: 320, h: 120,
-          archNote: "Gồm phòng bàn Bi-a và phòng bài Poker thông nhau.",
-          decor: `
-            <line x1="380" y1="300" x2="380" y2="420" stroke="#475569" stroke-width="1.5" stroke-dasharray="6,4"/>
-            <rect x="265" y="340" width="70" height="40" fill="none" stroke="#475569" stroke-width="1.5"/>
-            <circle cx="460" cy="360" r="24" fill="none" stroke="#475569" stroke-width="1.5"/>
-          `
-        },
+        { id: "f4_bar", name: "Quán Bar", short: "QUÁN BAR", x: 198, y: 50, w: 148, h: 110, desc: "Quầy bar giải trí trên tầng 4." },
+        { id: "f4_karaoke", name: "Phòng Karaoke", short: "PHÒNG KARAOKE", x: 354, y: 50, w: 148, h: 110, desc: "Phòng hát cách âm." },
+        { id: "f4_waiting_hall", name: "Sảnh Chờ Hẹp Trung Tâm", short: "SẢNH CHỜ TRUNG TÂM", x: 198, y: 170, w: 304, h: 105, savePoint: 4, desc: "Trung tâm Tầng 4, nơi đặt bình hoa hồng đỏ [🌹 SAVE POINT #4]." },
+        { id: "f4_games", name: "2 Phòng Chơi Game (Bi-a & Poker)", short: "2 PHÒNG GAME", x: 198, y: 285, w: 304, h: 125, desc: "Gồm phòng bàn Bi-a và phòng đánh bài Poker." },
 
-        // Khu Phải
-        {
-          id: "f4_greenhouse",
-          name: "Vườn Thượng Uyển (Nhà Kính Lan Độc)",
-          shortName: "VƯỜN THƯỢNG UYỂN",
-          x: 555, y: 60, w: 155, h: 215,
-          archNote: "Nhà kính trồng các giống phong lan quý hiếm có chứa độc tố thần kinh tự nhiên (mục tiêu của Sarah).",
-          decor: `
-            <line x1="555" y1="110" x2="710" y2="110" stroke="#1e293b" stroke-width="1"/>
-            <line x1="555" y1="160" x2="710" y2="160" stroke="#1e293b" stroke-width="1"/>
-            <line x1="555" y1="210" x2="710" y2="210" stroke="#1e293b" stroke-width="1"/>
-          `
-        },
-        {
-          id: "f4_zen_temple",
-          name: "Thiền Viện Bí Mật (Secret Zen Temple)",
-          shortName: "THIỀN VIỆN BÍ MẬT",
-          x: 555, y: 290, w: 155, h: 130,
-          archNote: "Nối với Vườn Thượng Uyển qua một lối đá hẹp. Không gian tĩnh mịch nồng mùi trầm hương cổ."
-        }
+        { id: "f4_greenhouse", name: "Vườn Thượng Uyển (Nhà Kính)", short: "VƯỜN THƯỢNG UYỂN", x: 515, y: 50, w: 145, h: 215, desc: "Nhà kính trồng các giống phong lan quý có độc tính cao." },
+        { id: "f4_zen_temple", name: "Thiền Viện Bí Mật", short: "THIỀN VIỆN BÍ MẬT", x: 515, y: 275, w: 145, h: 135, desc: "Thiền viện tĩnh mịch nằm cuối lối đá hẹp sau Vườn Thượng Uyển." }
       ]
     }
   };
 
-  // 3. CSS GIAO DIỆN CLINICAL BLUEPRINT & HIỆU ỨNG LÀM MỜ PHÒNG KHÓA
-  const STYLES = `
-    :root {
-      --bg- abyss: #05070b;
-      --bg-panel: #0b101b;
-      --bg-card: #111827;
-      --line-blueprint: #1e293b;
-      --wall-stroke: #64748b;
-      --text-main: #e2e8f0;
-      --text-muted: #94a3b8;
-      --crimson: #dc2626;
-      --crimson-glow: rgba(220, 38, 38, 0.45);
-      --gold: #f59e0b;
-      --cyan: #38bdf8;
-    }
+  // 3. CSS GIAO DIỆN GIẤY CỔ ĐIỂN (Sửa triệt để lỗi phông chữ tiếng Việt)
+  const CSS = `
+    @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=Be+Vietnam+Pro:wght@400;600;700&display=swap');
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 12px;
-      background-color: var(--bg-abyss);
-      color: var(--text-main);
-      font-family: 'Courier New', Consolas, monospace;
+      padding: 0;
+      background: #efe6d5;
+      color: #2b1d12;
+      font-family: 'Merriweather', 'Georgia', 'Times New Roman', serif;
       user-select: none;
       -webkit-font-smoothing: antialiased;
     }
-    .cm-wrapper {
-      max-width: 900px;
+    .vm-container {
+      width: 100%;
+      max-width: 960px;
       margin: 0 auto;
-      background: var(--bg-panel);
-      border: 1px solid #334155;
-      border-top: 3px solid var(--crimson);
-      border-radius: 6px;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
-      overflow: hidden;
-    }
-    /* HEADER TELEMETRY */
-    .cm-header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: linear-gradient(90deg, #0f172a 0%, #1a080c 100%);
-      border-bottom: 1px solid #1e293b;
-      gap: 10px;
-    }
-    .cm-title-box {
+      background: #efe6d5;
+      border: 2px solid #3a2314;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
       display: flex;
       flex-direction: column;
     }
-    .cm-title {
-      font-size: 16px;
-      font-weight: bold;
-      letter-spacing: 1.5px;
-      color: #f8fafc;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .cm-subtitle {
-      font-size: 11px;
-      color: #fca5a5;
-      margin-top: 3px;
-      font-style: italic;
-    }
-    .cm-telemetry {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .cm-badge {
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid #334155;
-      padding: 5px 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #e2e8f0;
-    }
-    .cm-badge.temp-cold {
-      border-color: #0284c7;
-      color: #7dd3fc;
-    }
-    .cm-badge.temp-freezing {
-      border-color: var(--crimson);
-      color: #fca5a5;
-      animation: pulseRed 2s infinite;
-    }
-
-    /* FLOOR TABS */
-    .cm-tabs {
-      display: flex;
-      background: #070a12;
-      border-bottom: 1px solid #1e293b;
-      overflow-x: auto;
-    }
-    .cm-tab {
-      flex: 1;
-      min-width: 95px;
-      padding: 10px 8px;
-      background: transparent;
-      color: var(--text-muted);
-      border: none;
-      border-right: 1px solid #1e293b;
-      border-bottom: 3px solid transparent;
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .cm-tab:hover {
-      background: rgba(51, 65, 85, 0.25);
-      color: #fff;
-    }
-    .cm-tab.active {
-      background: rgba(220, 38, 38, 0.12);
-      color: #fff;
-      border-bottom-color: var(--crimson);
-    }
-    .cm-dot-here {
-      width: 7px;
-      height: 7px;
-      background: #ef4444;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #ef4444;
-    }
-
-    /* BLUEPRINT STAGE */
-    .cm-stage-header {
-      padding: 8px 16px;
-      background: #090d16;
-      border-bottom: 1px solid #1e293b;
+    /* TOP HEADER */
+    .vm-header {
+      background: #2b1810;
+      color: #f3e9d2;
+      padding: 10px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
+      border-bottom: 2px solid #8c6239;
+      gap: 12px;
+    }
+    .vm-logo {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      line-height: 1.15;
+      color: #e6ccb2;
+      flex-shrink: 0;
+    }
+    .vm-atmo {
+      font-size: 13.5px;
+      font-style: italic;
+      text-align: center;
+      color: #f5ebe0;
+      line-height: 1.4;
+      flex: 1;
+    }
+    .vm-meta {
+      text-align: right;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #e6ccb2;
+      flex-shrink: 0;
+    }
+    /* MAIN BODY (2 COLUMNS) */
+    .vm-body {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      min-height: 410px;
+    }
+    @media (max-width: 680px) {
+      .vm-body { grid-template-columns: 1fr; }
+    }
+    /* LEFT COLUMN: MAP & CONTROLS */
+    .vm-left {
+      padding: 12px;
+      border-right: 1px solid #c8b69b;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: linear-gradient(180deg, #efe6d5 0%, #e3d5bd 100%);
+    }
+    .vm-tabs {
+      display: flex;
       gap: 6px;
     }
-    .cm-floor-label {
-      font-size: 13px;
-      font-weight: bold;
-      color: var(--cyan);
+    .vm-tab {
+      flex: 1;
+      background: #e6dac6;
+      border: 1px solid #8c7355;
+      border-radius: 3px;
+      padding: 6px 4px;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #3a2314;
+      cursor: pointer;
+      white-space: pre-line;
+      text-align: center;
+      line-height: 1.2;
+      transition: all 0.15s;
+    }
+    .vm-tab:hover { background: #d8c6a8; }
+    .vm-tab.active {
+      background: #2b1810;
+      color: #f3e9d2;
+      border-color: #2b1810;
+    }
+    .vm-floor-caption {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b4c35;
       letter-spacing: 0.5px;
     }
-    .cm-floor-desc {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .cm-canvas-wrap {
+    /* MAP VIEWPORT */
+    .vm-viewport {
       position: relative;
       width: 100%;
-      background: #060a12;
-      border-bottom: 1px solid #1e293b;
+      height: 290px;
+      background: #e5d8c1;
+      border: 1.5px solid #8c7355;
+      box-shadow: inset 0 2px 8px rgba(58, 35, 20, 0.18);
+      overflow: hidden;
+      cursor: grab;
+    }
+    .vm-viewport:active { cursor: grabbing; }
+    .vm-zoom-controls {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 10;
+    }
+    .vm-zbtn {
+      width: 32px;
+      height: 32px;
+      background: #efe6d5;
+      border: 1px solid #8c7355;
+      color: #2b1810;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     }
-    svg.cm-svg {
-      width: 100%;
-      height: auto;
-      max-height: 460px;
-      display: block;
-    }
+    .vm-zbtn:hover { background: #dfd1b8; }
 
-    /* SVG ROOM STATES */
-    .cm-room-group {
-      cursor: pointer;
-      transition: all 0.2s ease;
+    /* SVG ELEMENTS */
+    svg.vm-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      transform-origin: center center;
+      transition: transform 0.12s ease-out;
     }
-    .cm-room-group:hover .cm-room-box {
-      stroke: #cbd5e1;
-      stroke-width: 2.2px;
-      fill: rgba(51, 65, 85, 0.35);
+    .vm-room { cursor: pointer; }
+    .vm-room-rect {
+      fill: #f6efe2;
+      stroke: #5c4028;
+      stroke-width: 2px;
+      transition: all 0.2s;
     }
-    .cm-room-box {
-      fill: rgba(15, 23, 42, 0.78);
-      stroke: #475569;
-      stroke-width: 1.5px;
-      transition: all 0.25s ease;
-    }
-    /* Phòng đã có dữ liệu khám phá */
-    .cm-room-group.visited .cm-room-box {
-      fill: rgba(30, 41, 59, 0.82);
-      stroke: #64748b;
-    }
-    /* Phòng hiện tại của User & Charles */
-    .cm-room-group.current-room .cm-room-box {
-      fill: rgba(153, 27, 27, 0.28);
-      stroke: #ef4444;
-      stroke-width: 2.5px;
-      filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
-    }
-    /* Phòng đang được click xem thông tin */
-    .cm-room-group.selected-room .cm-room-box {
-      stroke: #38bdf8;
+    .vm-room:hover .vm-room-rect {
+      fill: #fffdf9;
+      stroke: #8b0000;
       stroke-width: 2.5px;
     }
-    /* PHÒNG BỊ KHÓA (Chưa có trong unlockedRooms) */
-    .cm-room-group.is-locked .cm-room-interior {
-      filter: blur(1.6px) brightness(0.45);
-      opacity: 0.35;
+    .vm-room.is-active .vm-room-rect {
+      fill: #f8d7da;
+      stroke: #9b1c1c;
+      stroke-width: 3px;
     }
-    .cm-room-group.is-locked .cm-room-box {
-      fill: url(#locked-hatch);
-      stroke: #334155;
+    .vm-room.is-selected .vm-room-rect {
+      stroke: #b45309;
+      stroke-width: 3px;
+      stroke-dasharray: 4,2;
+    }
+    /* Làm mờ & kẻ sọc phòng khóa */
+    .vm-room.is-locked .vm-room-rect {
+      fill: url(#parchment-lock-hatch);
+      stroke: #786554;
       stroke-dasharray: 5, 3;
     }
-    /* MẬT ĐẠO (Chỉ hiển thị khi có trong unlockedSecrets) */
-    .cm-room-group.is-secret .cm-room-box {
-      fill: rgba(120, 53, 15, 0.32);
-      stroke: #f59e0b;
-      stroke-width: 2px;
-      stroke-dasharray: 6, 3;
-      animation: pulseSecret 2.5s infinite;
+    .vm-room.is-locked .vm-room-label {
+      opacity: 0.35;
+      filter: blur(1px);
+    }
+    /* Mật đạo */
+    .vm-room.is-secret .vm-room-rect {
+      fill: #fef3c7;
+      stroke: #b45309;
+      stroke-width: 2.2px;
+      stroke-dasharray: 5, 3;
     }
 
-    /* LEGEND BAR */
-    .cm-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      padding: 8px 16px;
-      background: #080c14;
-      border-bottom: 1px solid #1e293b;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .cm-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .cm-swatch {
-      width: 12px;
-      height: 12px;
-      border-radius: 2px;
-      display: inline-block;
-    }
-
-    /* FORENSIC INSPECTOR PANEL */
-    .cm-inspector {
-      padding: 14px 16px;
-      background: #0b0f19;
-    }
-    .cm-insp-head {
+    /* FOOTER LEFT */
+    .vm-left-foot {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #1e293b;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .cm-insp-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: #f8fafc;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .cm-status-pill {
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 3px;
-      font-weight: bold;
-    }
-    .pill-current { background: rgba(220, 38, 38, 0.2); color: #fca5a5; border: 1px solid #dc2626; }
-    .pill-locked { background: rgba(51, 65, 85, 0.4); color: #cbd5e1; border: 1px solid #475569; }
-    .pill-secret { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
-    .pill-visited { background: rgba(2, 132, 199, 0.2); color: #7dd3fc; border: 1px solid #0284c7; }
-
-    .cm-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 10px;
+      margin-top: 2px;
     }
-    .cm-card {
-      background: var(--bg-card);
-      border: 1px solid #1e293b;
-      border-left: 3px solid #475569;
-      padding: 9px 12px;
-      border-radius: 4px;
-    }
-    .cm-card.card-see { border-left-color: #ef4444; }
-    .cm-card.card-hear { border-left-color: #38bdf8; }
-    .cm-card.card-who { border-left-color: #10b981; }
-    .cm-card.card-clue { border-left-color: #f59e0b; }
-    .cm-card-label {
-      font-size: 10px;
-      text-transform: uppercase;
+    .vm-goto-btn {
+      background: #efe6d5;
+      border: 1.5px solid #6b4c35;
+      padding: 7px 18px;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      color: #2b1810;
+      cursor: pointer;
       letter-spacing: 1px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      font-weight: bold;
     }
-    .cm-card-val {
-      font-size: 12.5px;
-      line-height: 1.5;
-      color: #f1f5f9;
-    }
-    .cm-locked-banner {
-      padding: 16px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px dashed #475569;
-      border-radius: 4px;
-      text-align: center;
-      color: #94a3b8;
-      font-size: 12.5px;
-      line-height: 1.6;
+    .vm-goto-btn:hover { background: #2b1810; color: #f3e9d2; }
+    .vm-hint {
+      font-size: 11.5px;
+      font-style: italic;
+      color: #6b4c35;
     }
 
-    @keyframes pulseRed {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
-      50% { box-shadow: 0 0 10px 2px rgba(220, 38, 38, 0.75); }
+    /* RIGHT COLUMN: DETAILS */
+    .vm-right {
+      padding: 16px 18px;
+      max-height: 430px;
+      overflow-y: auto;
+      background: #f5eedf;
     }
-    @keyframes pulseSecret {
-      0%, 100% { stroke-opacity: 1; }
-      50% { stroke-opacity: 0.45; }
+    .vm-room-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #2b1810;
+      margin: 0 0 4px 0;
+    }
+    .vm-save-tag {
+      font-size: 12.5px;
+      color: #2e6f40;
+      font-style: italic;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .vm-sec-title {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #6b4c35;
+      margin: 14px 0 6px 0;
+      text-transform: uppercase;
+    }
+    .vm-sec-body {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #2b1d12;
+      margin: 0 0 10px 0;
+    }
+    .vm-who-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .vm-who-badge {
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e2ecf5;
+      border: 1px solid #7ea3c4;
+      color: #1e3a5f;
+    }
+    .vm-who-badge.bad {
+      background: #f8d7da;
+      border-color: #c87a82;
+      color: #721c24;
     }
   `;
 
-  // 4. HÀM KHỞI TẠO CHÍNH: initCrookedMap(config)
-  function initCrookedMap(rawConfig) {
-    const config = rawConfig || {};
-    const activeRoomId = normalizeId(config.activeRoomId || "f1_grand_hall");
+  // 4. HÀM KHỞI TẠO CHÍNH
+  function initCrookedMap(rawCfg) {
+    const cfg = rawCfg || {};
+    const activeId = normId(cfg.activeRoomId || "f1_grand_hall");
 
-    // Chuẩn hóa danh sách phòng đã mở khóa & mật đạo đã phát hiện
-    const unlockedRoomsSet = new Set(
-      (Array.isArray(config.unlockedRooms) ? config.unlockedRooms : []).map(normalizeId)
-    );
-    // Nếu người chơi đang đứng trực tiếp trong phòng đó thì mặc định coi như đã mở khóa
-    if (activeRoomId) unlockedRoomsSet.add(activeRoomId);
+    const unlockedRooms = new Set((Array.isArray(cfg.unlockedRooms) ? cfg.unlockedRooms : []).map(normId));
+    if (activeId) unlockedRooms.add(activeId);
 
-    const unlockedSecretsSet = new Set(
-      (Array.isArray(config.unlockedSecrets) ? config.unlockedSecrets : []).map(normalizeId)
-    );
-    // Nếu người chơi đang đứng trong mật thất thì tự động hiện mật thất đó
-    if (activeRoomId === "f1_secret" || activeRoomId === "f2_secret" || activeRoomId === "f3_secret") {
-      unlockedSecretsSet.add(activeRoomId);
+    const unlockedSecrets = new Set((Array.isArray(cfg.unlockedSecrets) ? cfg.unlockedSecrets : []).map(normId));
+    if (activeId === "f1_secret" || activeId === "f2_secret" || activeId === "f3_secret") {
+      unlockedSecrets.add(activeId);
     }
 
-    // Chuẩn hóa dữ liệu trinh sát các phòng từ config.rooms
-    const normalizedRoomsData = {};
-    if (config.rooms && typeof config.rooms === "object") {
-      Object.keys(config.rooms).forEach((k) => {
-        const normKey = normalizeId(k);
-        normalizedRoomsData[normKey] = config.rooms[k];
+    const roomStateMap = {};
+    if (cfg.rooms && typeof cfg.rooms === "object") {
+      Object.keys(cfg.rooms).forEach((k) => {
+        roomStateMap[normId(k)] = cfg.rooms[k];
       });
     }
 
-    // Xác định tầng hiện tại dựa trên currentFloor hoặc suy ra từ activeRoomId
-    let initialFloor = (config.currentFloor || "F1").toUpperCase().trim();
-    if (!MANOR_BLUEPRINT[initialFloor]) {
-      const prefix = activeRoomId.split("_")[0].toUpperCase();
-      initialFloor = MANOR_BLUEPRINT[prefix] ? prefix : "F1";
+    let currentFloor = (cfg.currentFloor || "F1").toUpperCase().trim();
+    if (!FLOORS[currentFloor]) {
+      const pref = activeId.split("_")[0].toUpperCase();
+      currentFloor = FLOORS[pref] ? pref : "F1";
+    }
+    let selectedId = activeId;
+
+    // Biến điều khiển Zoom & Kéo bản đồ
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+
+    if (!document.getElementById("vm-crooked-css")) {
+      const st = document.createElement("style");
+      st.id = "vm-crooked-css";
+      st.textContent = CSS;
+      document.head.appendChild(st);
     }
 
-    let currentViewFloor = initialFloor;
-    let selectedRoomId = activeRoomId;
-
-    // Tiêm CSS
-    if (!document.getElementById("crooked-map-styles")) {
-      const styleEl = document.createElement("style");
-      styleEl.id = "crooked-map-styles";
-      styleEl.textContent = STYLES;
-      document.head.appendChild(styleEl);
-    }
-
-    // Tạo container chính
-    let root = document.getElementById("crooked-map-root");
+    let root = document.getElementById("vm-crooked-root");
     if (!root) {
       root = document.createElement("div");
-      root.id = "crooked-map-root";
+      root.id = "vm-crooked-root";
       document.body.appendChild(root);
     }
 
-    // Kiểm tra phòng có đang bị khóa hay không
-    function isRoomLocked(roomDef) {
-      if (!roomDef.lockedByDefault) return false;
-      return !unlockedRoomsSet.has(roomDef.id);
+    function isLocked(r) {
+      return Boolean(r.lockedByDefault && !unlockedRooms.has(r.id));
     }
 
-    // Kiểm tra mật đạo có được phép hiển thị hay không (Ẩn 100% nếu chưa khám phá)
-    function isSecretVisible(roomDef) {
-      if (!roomDef.isSecret) return true;
-      return unlockedSecretsSet.has(roomDef.id);
+    function isSecretShown(r) {
+      if (!r.isSecret) return true;
+      return unlockedSecrets.has(r.id);
     }
 
-    // Kiểm tra xem phòng có hiện trường máu / thi thể không
-    function hasBloodAlert(roomId) {
-      const data = normalizedRoomsData[roomId];
-      if (!data || !data.see) return false;
-      return /🩸|xác|thi thể|máu|án mạng|tử vong/i.test(data.see);
-    }
-
-    // Tìm thông tin định nghĩa phòng theo ID
-    function findRoomDef(roomId) {
-      for (const flKey of Object.keys(MANOR_BLUEPRINT)) {
-        const found = MANOR_BLUEPRINT[flKey].rooms.find((r) => r.id === roomId);
-        if (found) return { floor: flKey, room: found };
+    function findRoom(id) {
+      for (const fk of Object.keys(FLOORS)) {
+        const rm = FLOORS[fk].rooms.find((x) => x.id === id);
+        if (rm) return { floorKey: fk, room: rm };
       }
       return null;
     }
 
-    // Render SVG mặt bằng cho tầng được chọn
-    function buildFloorSVG(floorKey) {
-      const floor = MANOR_BLUEPRINT[floorKey];
-      if (!floor) return "";
+    function renderSVG(floorKey) {
+      const fl = FLOORS[floorKey];
+      let nodes = "";
 
-      let roomsSvg = "";
+      fl.rooms.forEach((r) => {
+        // Ẩn tuyệt đối mật đạo nếu chưa có trong unlockedSecrets
+        if (!isSecretShown(r)) return;
 
-      floor.rooms.forEach((r) => {
-        // QUY TẮC TỐI THƯỢNG: Ẩn hoàn toàn Mật Đạo nếu chưa có trong unlockedSecrets
-        if (!isSecretVisible(r)) {
-          return;
-        }
+        const locked = isLocked(r);
+        const isHere = r.id === activeId;
+        const isSel = r.id === selectedId;
 
-        const locked = isRoomLocked(r);
-        const isCurrent = r.id === activeRoomId;
-        const isSelected = r.id === selectedRoomId;
-        const hasData = Boolean(normalizedRoomsData[r.id]);
-        const bloodAlert = !locked && hasBloodAlert(r.id);
-
-        const classes = [
-          "cm-room-group",
+        const cls = [
+          "vm-room",
           locked ? "is-locked" : "",
           r.isSecret ? "is-secret" : "",
-          isCurrent ? "current-room" : "",
-          isSelected ? "selected-room" : "",
-          hasData ? "visited" : ""
-        ]
-          .filter(Boolean)
-          .join(" ");
+          isHere ? "is-active" : "",
+          isSel ? "is-selected" : ""
+        ].filter(Boolean).join(" ");
 
         const cx = r.x + r.w / 2;
         const cy = r.y + r.h / 2;
 
-        // Nhãn phụ hiển thị bên dưới tên phòng
-        let badgesSvg = "";
-
+        let iconOverlay = "";
         if (locked) {
-          // Hiển thị ổ khóa rõ nét đè lên trên lớp nền bị làm mờ
-          badgesSvg += `
-            <g transform="translate(${cx}, ${cy + 10})">
-              <rect x="-36" y="-10" width="72" height="18" rx="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-              <text x="0" y="3" fill="#cbd5e1" font-size="9.5" font-weight="bold" text-anchor="middle">🔒 ĐÃ KHÓA</text>
+          iconOverlay = `
+            <g transform="translate(${cx}, ${cy + 12})">
+              <rect x="-32" y="-9" width="64" height="16" rx="2" fill="#3a2314"/>
+              <text x="0" y="3" fill="#f3e9d2" font-family="Be Vietnam Pro, sans-serif" font-size="8.5" font-weight="bold" text-anchor="middle">🔒 KHÓA</text>
             </g>
           `;
         } else {
-          // Nếu phòng đã mở, hiển thị Save Point (🌹), Vị trí người chơi (📍), hoặc Cảnh báo máu (🩸)
           if (r.savePoint) {
-            badgesSvg += `
-              <text x="${r.x + r.w - 12}" y="${r.y + 16}" font-size="12" text-anchor="middle" title="Điểm Lưu Trữ Hoa Hồng Đỏ">🌹</text>
-            `;
+            iconOverlay += `<text x="${r.x + r.w - 12}" y="${r.y + 15}" font-size="12" text-anchor="middle">🌹</text>`;
           }
-          if (bloodAlert) {
-            badgesSvg += `
-              <text x="${r.x + 14}" y="${r.y + 16}" font-size="12" text-anchor="middle">🩸</text>
-            `;
-          }
-          if (isCurrent) {
-            badgesSvg += `
+          if (isHere) {
+            iconOverlay += `
               <g transform="translate(${cx}, ${cy + 14})">
-                <rect x="-48" y="-9" width="96" height="17" rx="8" fill="#dc2626" stroke="#fca5a5" stroke-width="1"/>
-                <text x="0" y="3" fill="#ffffff" font-size="8.5" font-weight="bold" text-anchor="middle">📍 BẠN & CHARLES</text>
+                <rect x="-38" y="-8" width="76" height="15" rx="7" fill="#8b0000"/>
+                <text x="0" y="3" fill="#fff" font-family="Be Vietnam Pro, sans-serif" font-size="8" font-weight="bold" text-anchor="middle">📍 ĐANG Ở ĐÂY</text>
               </g>
             `;
           }
         }
 
-        roomsSvg += `
-          <g class="${classes}" data-room-id="${r.id}">
-            <rect class="cm-room-box" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="2"/>
-            <g class="cm-room-interior">
-              ${r.decor || ""}
-              <text x="${cx}" y="${locked ? cy - 6 : cy - 2}"
-                    fill="${r.isSecret ? "#fcd34d" : isCurrent ? "#ffffff" : "#cbd5e1"}"
-                    font-size="${r.w < 95 ? "8.5" : "10"}"
-                    font-weight="bold"
-                    text-anchor="middle">
-                ${r.shortName}
-              </text>
-            </g>
-            ${badgesSvg}
+        nodes += `
+          <g class="${cls}" data-id="${r.id}">
+            <rect class="vm-room-rect" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="2"/>
+            <text class="vm-room-label" x="${cx}" y="${locked ? cy - 4 : cy}"
+                  fill="#2b1810" font-family="Be Vietnam Pro, sans-serif"
+                  font-size="${r.w < 85 ? "8" : "9.5"}" font-weight="700" text-anchor="middle">
+              ${r.short}
+            </text>
+            ${iconOverlay}
           </g>
         `;
       });
 
       return `
-        <svg class="cm-svg" viewBox="0 0 760 480" xmlns="http://www.w3.org/2000/svg">
+        <svg class="vm-svg" id="vm-svg-canvas" viewBox="0 0 700 460" xmlns="http://www.w3.org/2000/svg"
+             style="transform: translate(${panX}px, ${panY}px) scale(${scale});">
           <defs>
-            <!-- Lưới Blueprint Kỹ Thuật -->
-            <pattern id="bp-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#111c2d" stroke-width="0.8"/>
+            <pattern id="parchment-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#d5c4a8" stroke-width="0.8"/>
             </pattern>
-            <!-- Sọc chéo cho Phòng Bị Khóa -->
-            <pattern id="locked-hatch" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-              <rect width="10" height="10" fill="rgba(9, 13, 22, 0.88)"/>
-              <line x1="0" y1="0" x2="0" y2="10" stroke="#1e293b" stroke-width="3"/>
-            </pattern>
-            <!-- Bậc cầu thang -->
-            <pattern id="stairs-pat" width="6" height="6" patternUnits="userSpaceOnUse">
-              <line x1="0" y1="0" x2="0" y2="6" stroke="#475569" stroke-width="1.5"/>
+            <pattern id="parchment-lock-hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <rect width="8" height="8" fill="#d8cab2"/>
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#b5a184" stroke-width="3"/>
             </pattern>
           </defs>
-
-          <!-- Nền Blueprint -->
-          <rect width="760" height="480" fill="#060a12"/>
-          <rect width="760" height="480" fill="url(#bp-grid)"/>
-
-          <!-- La bàn & Thước đo tỷ lệ kiến trúc -->
-          <g transform="translate(725, 32)" opacity="0.65">
-            <circle cx="0" cy="0" r="14" fill="none" stroke="#64748b" stroke-width="1"/>
-            <path d="M 0,-12 L 4,4 L 0,1 L -4,4 Z" fill="#ef4444"/>
-            <text x="0" y="-16" fill="#94a3b8" font-size="8" font-weight="bold" text-anchor="middle">N</text>
-          </g>
-          <text x="16" y="468" fill="#475569" font-size="9">ARCHITECT: RICHARD • SCALE 1:100 • CROOKED MANOR BLUEPRINT</text>
-
-          <!-- Khung tường bao ngoại vi của tầng -->
-          <path d="${floor.outline}" fill="#090e1a" stroke="#475569" stroke-width="4"/>
-          <path d="${floor.outline}" fill="none" stroke="#94a3b8" stroke-width="1" opacity="0.4"/>
-
-          <!-- Hành lang & Đường ống ngầm -->
-          ${(floor.corridors || []).join("\n")}
-
-          <!-- Danh sách các phòng -->
-          ${roomsSvg}
+          <rect width="700" height="460" fill="url(#parchment-grid)"/>
+          <path d="${fl.outline}" fill="#eadec9" stroke="#3a2314" stroke-width="4"/>
+          ${nodes}
         </svg>
       `;
     }
 
-    // Render Bảng Trinh Sát Hiện Trường (Forensic Inspector)
-    function buildInspectorHTML(roomId) {
-      const found = findRoomDef(roomId);
-      if (!found) {
-        return `<div class="cm-locked-banner">Hãy chọn một khu vực trên sơ đồ để xem dữ liệu trinh sát.</div>`;
+    function renderRightPanel(id) {
+      const found = findRoom(id);
+      if (!found || !isSecretShown(found.room)) {
+        return `<div class="vm-sec-body">Chọn một phòng trên bản đồ để xem chi tiết.</div>`;
       }
 
-      const { floor, room } = found;
-      // Nếu là mật đạo chưa mở khóa thì ẩn hoàn toàn
-      if (!isSecretVisible(room)) {
-        return `<div class="cm-locked-banner">Khu vực không xác định trên bản vẽ công khai.</div>`;
-      }
+      const { room } = found;
+      const locked = isLocked(room);
+      const st = roomStateMap[room.id] || {};
 
-      const locked = isRoomLocked(room);
-      const isCurrent = room.id === activeRoomId;
-      const roomData = normalizedRoomsData[room.id];
-
-      // TRƯỜNG HỢP 1: PHÒNG ĐANG BỊ KHÓA (Chưa có trong unlockedRooms)
       if (locked) {
         return `
-          <div class="cm-insp-head">
-            <div class="cm-insp-title">
-              <span>🔒 ${room.name}</span>
-            </div>
-            <span class="cm-status-pill pill-locked">KHU VỰC BỊ KHÓA (${floor})</span>
-          </div>
-          <div class="cm-locked-banner">
-            <strong>[CỬA KHU VỰC ĐANG BỊ KHÓA CHẶT]</strong><br/>
-            ${room.archNote}<br/>
-            <span style="color:#fca5a5; font-size:11.5px;">
-              ※ Tầm nhìn và âm thanh bên trong bị phong tỏa hoàn toàn. Cần tìm đúng chìa khóa (từ Quản gia Henry, Thợ máy Logan, lục soát hiện trường) hoặc nhờ Greg bẻ khóa để tiếp cận.
-            </span>
-          </div>
+          <h3 class="vm-room-title">🔒 ${room.name}</h3>
+          <span class="vm-save-tag" style="color:#8b0000;">Khu vực đang bị khóa chặt</span>
+          <div class="vm-sec-title">🔒 TRẠNG THÁI CỬA</div>
+          <p class="vm-sec-body">${room.desc}</p>
+          <p class="vm-sec-body" style="color:#8b0000; font-style:italic;">
+            Cửa phòng này hiện đang khóa. Bạn và Charles cần tìm đúng chìa khóa (từ Quản gia Henry, Thợ máy Logan, lục soát hiện trường) hoặc nhờ Greg mở khóa để tiếp cận.
+          </p>
         `;
       }
 
-      // TRƯỜNG HỢP 2: PHÒNG ĐÃ MỞ KHÓA
-      let statusBadge = `<span class="cm-status-pill pill-visited">TẦNG ${floor}</span>`;
-      if (isCurrent) {
-        statusBadge = `<span class="cm-status-pill pill-current">📍 VỊ TRÍ HIỆN TẠI CỦA BẠN & CHARLES</span>`;
-      } else if (room.isSecret) {
-        statusBadge = `<span class="cm-status-pill pill-secret">🕵️ MẬT ĐẠO ĐÃ PHÁT HIỆN</span>`;
-      }
+      const hearTxt = st.hear || "Tiếng gió tuyết rít bên ngoài khung cửa kính.";
+      const seeTxt = st.see || room.desc;
+      const whoArr = Array.isArray(st.who) && st.who.length > 0 ? st.who : (room.id === activeId ? ["Charles (Cạnh bạn)"] : ["Chưa ghi nhận"]);
+      const clueTxt = st.clue || "Dùng lệnh /khampha tại phòng này để kiểm tra kỹ các dấu vết vật lý.";
 
-      const hearText = roomData && roomData.hear
-        ? roomData.hear
-        : (isCurrent ? "Tiếng gió tuyết rít ngoài khung cửa và nhịp thở trầm tĩnh của Charles." : "Ngoài tầm nghe trực tiếp từ vị trí hiện tại (Sương mù nhận thức).");
-
-      const seeText = roomData && roomData.see
-        ? roomData.see
-        : room.archNote + (room.savePoint ? " Tại đây có đặt 🌹 Bình Hoa Hồng Đỏ (Điểm Lưu Trữ)." : "");
-
-      const whoList = roomData && Array.isArray(roomData.who) && roomData.who.length > 0
-        ? roomData.who.join(", ")
-        : (isCurrent ? "Bạn, Charles" : "Chưa rõ nhân sự bên trong (Cần trực tiếp bước vào kiểm tra)");
-
-      const clueText = roomData && roomData.clue
-        ? roomData.clue
-        : (room.savePoint
-            ? "🌹 Có thể gõ lệnh /save khi đứng tại phòng này để lưu tiến trình sinh tồn."
-            : "Chưa ghi nhận vật chứng mới. Sử dụng lệnh /khampha khi ở trong phòng để lục soát sâu hơn.");
+      const whoBadges = whoArr.map((w) => {
+        const isCorpse = /xác|thi thể|nạn nhân|chết/i.test(w);
+        return `<span class="vm-who-badge ${isCorpse ? "bad" : ""}">${w}</span>`;
+      }).join("");
 
       return `
-        <div class="cm-insp-head">
-          <div class="cm-insp-title">
-            <span>${room.savePoint ? "🌹 " : ""}${room.name}</span>
-          </div>
-          ${statusBadge}
-        </div>
-        <div class="cm-grid">
-          <div class="cm-card card-see">
-            <div class="cm-card-label">👁️ QUAN SÁT HIỆN TRẠNG (SEE)</div>
-            <div class="cm-card-val">${seeText}</div>
-          </div>
-          <div class="cm-card card-hear">
-            <div class="cm-card-label">👂 ÂM THANH GHI NHẬN (HEAR)</div>
-            <div class="cm-card-val">${hearText}</div>
-          </div>
-          <div class="cm-card card-who">
-            <div class="cm-card-label">👥 NHÂN SỰ TẠI KHU VỰC (WHO)</div>
-            <div class="cm-card-val">${whoList}</div>
-          </div>
-          <div class="cm-card card-clue">
-            <div class="cm-card-label">🔍 GHI CHÚ TRINH SÁT & KIẾN TRÚC (CLUE)</div>
-            <div class="cm-card-val">${clueText}</div>
-          </div>
-        </div>
+        <h3 class="vm-room-title">${room.name}</h3>
+        ${room.savePoint ? `<span class="vm-save-tag">🌹 Điểm Lưu Trữ An Toàn (Save Point #${room.savePoint})</span>` : ""}
+
+        <div class="vm-sec-title">👂 NGHE HÓNG</div>
+        <p class="vm-sec-body">${hearTxt}</p>
+
+        <div class="vm-sec-title">👁️ QUAN SÁT</div>
+        <p class="vm-sec-body">${seeTxt}</p>
+
+        <div class="vm-sec-title">👥 AI ĐÓ</div>
+        <div class="vm-who-list">${whoBadges}</div>
+
+        <div class="vm-sec-title">🔍 GHI CHÚ TRINH SÁT</div>
+        <p class="vm-sec-body">${clueTxt}</p>
       `;
     }
 
-    // Render toàn bộ giao diện
-    function renderAll() {
-      const floorObj = MANOR_BLUEPRINT[currentViewFloor];
-      const tempNum = parseFloat(String(config.temp || "15").replace(/[^\d.-]/g, ""));
-      const tempClass = tempNum <= 2 ? "temp-freezing" : "temp-cold";
+    function updateTransform() {
+      const svgEl = document.getElementById("vm-svg-canvas");
+      if (svgEl) {
+        svgEl.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      }
+    }
 
-      const tabsHtml = ["B1", "F1", "F2", "F3", "F4"]
-        .map((fl) => {
-          const isPlayerFloor = fl === initialFloor;
-          const isActiveTab = fl === currentViewFloor;
-          // Đếm số mật đạo đã mở ở tầng này (nếu có)
-          const hasDiscoveredSecretOnFloor = MANOR_BLUEPRINT[fl].rooms.some(
-            (r) => r.isSecret && unlockedSecretsSet.has(r.id)
-          );
-          return `
-            <button class="cm-tab ${isActiveTab ? "active" : ""}" data-floor="${fl}">
-              ${isPlayerFloor ? `<span class="cm-dot-here" title="Bạn đang ở tầng này"></span>` : ""}
-              <span>TẦNG ${fl}</span>
-              ${fl === "F3" && !unlockedRoomsSet.has("f3_office") ? `<span>🔒</span>` : ""}
-              ${hasDiscoveredSecretOnFloor ? `<span title="Đã phát hiện mật đạo">🕵️</span>` : ""}
-            </button>
-          `;
-        })
-        .join("");
+    function render() {
+      const flObj = FLOORS[currentFloor];
+      const tabsHtml = ["B1", "F1", "F2", "F3", "F4"].map((k) => {
+        return `<button class="vm-tab ${k === currentFloor ? "active" : ""}" data-fl="${k}">${FLOORS[k].tabLabel}</button>`;
+      }).join("");
+
+      const foundSel = findRoom(selectedId);
+      const selName = foundSel ? foundSel.room.name : "khu vực này";
 
       root.innerHTML = `
-        <div class="cm-wrapper">
-          <!-- HEADER -->
-          <div class="cm-header">
-            <div class="cm-title-box">
-              <div class="cm-title">
-                <span>🏛️ BẢN VẼ KỸ THUẬT: BIỆT THỰ RỪNG THẲM</span>
+        <div class="vm-container">
+          <div class="vm-header">
+            <div class="vm-logo">CROOKED<br/>MAP</div>
+            <div class="vm-atmo">${cfg.atmosphere || "Bão tuyết phong tỏa • Mọi đường dây liên lạc đã bị cắt đứt."}</div>
+            <div class="vm-meta">
+              <strong>${cfg.time || "18:00"}</strong> | 🌡️ <strong>${cfg.temp || "15°C"}</strong><br/>
+              Ngày ${cfg.day || "1/5"} • Biệt Thự Rừng Thẳm
+            </div>
+          </div>
+
+          <div class="vm-body">
+            <div class="vm-left">
+              <div class="vm-tabs">${tabsHtml}</div>
+              <div class="vm-floor-caption">${flObj.title}</div>
+
+              <div class="vm-viewport" id="vm-map-viewport">
+                <div class="vm-zoom-controls">
+                  <button class="vm-zbtn" id="vm-z-in" title="Phóng to">+</button>
+                  <button class="vm-zbtn" id="vm-z-out" title="Thu nhỏ">−</button>
+                  <button class="vm-zbtn" id="vm-z-reset" title="Đặt lại góc nhìn">↗</button>
+                </div>
+                ${renderSVG(currentFloor)}
               </div>
-              <div class="cm-subtitle">${config.atmosphere || "Bão tuyết phong tỏa • Mọi đường dây liên lạc đã bị cắt đứt"}</div>
-            </div>
-            <div class="cm-telemetry">
-              <div class="cm-badge">📅 NGÀY ${config.day || "1/5"}</div>
-              <div class="cm-badge">⏳ ${config.time || "18:00"}</div>
-              <div class="cm-badge ${tempClass}">🌡️ ${config.temp || "15°C"}</div>
-            </div>
-          </div>
 
-          <!-- TABS CHUYỂN TẦNG -->
-          <div class="cm-tabs">
-            ${tabsHtml}
-          </div>
-
-          <!-- TIÊU ĐỀ TẦNG -->
-          <div class="cm-stage-header">
-            <div class="cm-floor-label">${floorObj.name}</div>
-            <div class="cm-floor-desc">${floorObj.subtitle}</div>
-          </div>
-
-          <!-- BẢN VẼ SVG -->
-          <div class="cm-canvas-wrap">
-            ${buildFloorSVG(currentViewFloor)}
-          </div>
-
-          <!-- CHÚ GIẢI -->
-          <div class="cm-legend">
-            <div class="cm-legend-item">
-              <span class="cm-swatch" style="background:rgba(220,38,38,0.45); border:1.5px solid #ef4444;"></span>
-              <span>Vị trí của Bạn & Charles</span>
+              <div class="vm-left-foot">
+                <button class="vm-goto-btn" id="vm-goto-btn" title="Copy lệnh di chuyển tới ${selName}">TỚI ĐÓ</button>
+                <span class="vm-hint" id="vm-hint-text">Bấm vào phòng để trinh sát • Kéo để di chuyển bản đồ</span>
+              </div>
             </div>
-            <div class="cm-legend-item">
-              <span class="cm-swatch" style="background:#0f172a; border:1px dashed #475569;"></span>
-              <span>🔒 Phòng bị khóa (Làm mờ nội thất)</span>
-            </div>
-            <div class="cm-legend-item">
-              <span>🌹 Điểm Lưu Trữ (Save Point)</span>
-            </div>
-            ${
-              unlockedSecretsSet.size > 0
-                ? `<div class="cm-legend-item">
-                     <span class="cm-swatch" style="background:rgba(120,53,15,0.4); border:1.5px dashed #f59e0b;"></span>
-                     <span>🕵️ Mật đạo đã khám phá (${unlockedSecretsSet.size}/3)</span>
-                   </div>`
-                : ""
-            }
-          </div>
 
-          <!-- BẢNG CHI TIẾT TRINH SÁT -->
-          <div class="cm-inspector" id="cm-inspector-box">
-            ${buildInspectorHTML(selectedRoomId)}
+            <div class="vm-right">
+              ${renderRightPanel(selectedId)}
+            </div>
           </div>
         </div>
       `;
 
-      // Gắn sự kiện chuyển tầng
-      root.querySelectorAll(".cm-tab").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const targetFloor = this.getAttribute("data-floor");
-          if (targetFloor && MANOR_BLUEPRINT[targetFloor]) {
-            currentViewFloor = targetFloor;
-            // Tự động chọn phòng đầu tiên (không phải mật đạo đang ẩn) của tầng đó để hiển thị
-            const visibleRooms = MANOR_BLUEPRINT[targetFloor].rooms.filter(isSecretVisible);
-            const playerRoomOnFloor = visibleRooms.find((r) => r.id === activeRoomId);
-            selectedRoomId = playerRoomOnFloor
-              ? playerRoomOnFloor.id
-              : (visibleRooms[0] ? visibleRooms[0].id : "");
-            renderAll();
-          }
+      // Sự kiện chuyển tầng
+      root.querySelectorAll(".vm-tab").forEach((b) => {
+        b.addEventListener("click", function () {
+          currentFloor = this.getAttribute("data-fl");
+          scale = 1; panX = 0; panY = 0;
+          const vis = FLOORS[currentFloor].rooms.filter(isSecretShown);
+          const here = vis.find((r) => r.id === activeId);
+          selectedId = here ? here.id : (vis[0] ? vis[0].id : "");
+          render();
         });
       });
 
-      // Gắn sự kiện click vào từng phòng trên SVG
-      root.querySelectorAll(".cm-room-group").forEach((grp) => {
-        grp.addEventListener("click", function () {
-          const rId = this.getAttribute("data-room-id");
-          if (rId) {
-            selectedRoomId = rId;
-            renderAll();
-          }
+      // Sự kiện chọn phòng
+      root.querySelectorAll(".vm-room").forEach((g) => {
+        g.addEventListener("click", function (e) {
+          e.stopPropagation();
+          selectedId = this.getAttribute("data-id");
+          render();
         });
+      });
+
+      // Sự kiện Zoom +, -, Reset
+      document.getElementById("vm-z-in").addEventListener("click", () => {
+        scale = Math.min(2.4, +(scale + 0.25).toFixed(2));
+        updateTransform();
+      });
+      document.getElementById("vm-z-out").addEventListener("click", () => {
+        scale = Math.max(0.7, +(scale - 0.25).toFixed(2));
+        updateTransform();
+      });
+      document.getElementById("vm-z-reset").addEventListener("click", () => {
+        scale = 1; panX = 0; panY = 0;
+        updateTransform();
+      });
+
+      // Kéo thả bản đồ (Drag/Pan)
+      const vp = document.getElementById("vm-map-viewport");
+      let isDown = false, startX = 0, startY = 0;
+      vp.addEventListener("mousedown", (e) => {
+        if (e.target.closest(".vm-zbtn")) return;
+        isDown = true; startX = e.clientX - panX; startY = e.clientY - panY;
+      });
+      window.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        panX = e.clientX - startX; panY = e.clientY - startY;
+        updateTransform();
+      });
+      window.addEventListener("mouseup", () => { isDown = false; });
+
+      // Nút "TỚI ĐÓ": Tự động copy câu lệnh di chuyển vào bộ nhớ tạm
+      document.getElementById("vm-goto-btn").addEventListener("click", () => {
+        const target = findRoom(selectedId);
+        if (!target) return;
+        const moveText = `Tôi và Charles di chuyển tới ${target.room.name}.`;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(moveText);
+        }
+        const hintEl = document.getElementById("vm-hint-text");
+        if (hintEl) {
+          hintEl.textContent = `Đã chép: "${moveText}" (Dán vào ô chat!)`;
+          hintEl.style.color = "#8b0000";
+          hintEl.style.fontWeight = "bold";
+        }
       });
     }
 
-    renderAll();
+    render();
   }
 
-  // Xuất hàm ra phạm vi toàn cục để lệnh /map gọi trực tiếp
   global.initCrookedMap = initCrookedMap;
 })(window);
