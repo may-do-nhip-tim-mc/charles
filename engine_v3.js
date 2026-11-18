@@ -623,16 +623,16 @@
         <h3 class="vm-room-title">${room.name}</h3>
         ${room.savePoint ? `<span class="vm-save-tag">🌹 Điểm Lưu Trữ An Toàn (Save Point #${room.savePoint})</span>` : ""}
 
-        <div class="vm-sec-title">👂 NGHE HÓNG</div>
+        <div class="vm-sec-title">👂 TÌNH HÌNH XUNG QUANH</div>
         <p class="vm-sec-body">${hearTxt}</p>
 
         <div class="vm-sec-title">👁️ QUAN SÁT</div>
         <p class="vm-sec-body">${seeTxt}</p>
 
-        <div class="vm-sec-title">👥 AI ĐÓ</div>
+        <div class="vm-sec-title">👥 HIỆN DIỆN</div>
         <div class="vm-who-list">${whoBadges}</div>
 
-        <div class="vm-sec-title">🔍 GHI CHÚ TRINH SÁT</div>
+        <div class="vm-sec-title">🔍 GHI CHÚ</div>
         <p class="vm-sec-body">${clueTxt}</p>
       `;
     }
